@@ -1,0 +1,15 @@
+{
+  "name": "Mein Dashboard",
+  "short_name": "Dashboard",
+  "description": "Gedanken festhalten, sortieren und planen — mit Kategorien und Kalender.",
+  "lang": "de",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f6f5fb",
+  "theme_color": "#7c6ff0",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

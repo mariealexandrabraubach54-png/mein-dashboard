@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7c6ff0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Mein Dashboard</title>
+<style>
+  :root{
+    --bg:#f6f5fb; --card:#ffffff; --ink:#2b2a33; --muted:#8a879a;
+    --accent:#7c6ff0; --accent-soft:#eeecfd; --danger:#e05c6d;
+    --radius:18px; --shadow:0 2px 12px rgba(60,50,120,.08);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink);
+    padding-bottom:calc(76px + env(safe-area-inset-bottom));
+  }
+  header{
+    position:sticky; top:0; z-index:20;
+    background:linear-gradient(135deg,#7c6ff0,#a48df5);
+    color:#fff; padding:18px 20px 16px;
+    border-radius:0 0 24px 24px;
+  }
+  header h1{margin:0; font-size:1.25rem; font-weight:700}
+  header .sub{opacity:.85; font-size:.85rem; margin-top:2px}
+  main{max-width:860px; margin:0 auto; padding:16px}
+  section.view{display:none}
+  section.view.active{display:block; animation:fade .18s ease}
+  @keyframes fade{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}
+
+  .card{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin-bottom:14px}
+  h2{font-size:1rem; margin:4px 0 10px; color:var(--ink)}
+  h2 .hint{font-weight:400; color:var(--muted); font-size:.8rem}
+  .muted{color:var(--muted); font-size:.85rem}
+
+  button{font:inherit; cursor:pointer; border:none; border-radius:12px; background:var(--accent-soft); color:var(--accent); padding:10px 14px; font-weight:600}
+  button.primary{background:var(--accent); color:#fff}
+  button.ghost{background:transparent; color:var(--muted); padding:6px}
+  button.danger{background:#fdecee; color:var(--danger)}
+  button:active{transform:scale(.97)}
+  input,select,textarea{
+    font:inherit; width:100%; border:1.5px solid #e4e2f0; border-radius:12px;
+    padding:11px 12px; background:#fff; color:var(--ink); outline:none;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+  textarea{resize:vertical; min-height:74px}
+  .row{display:flex; gap:8px; align-items:center}
+  .row > *{min-width:0}
+  .grow{flex:1}
+
+  /* Mikrofon */
+  .mic{
+    flex:none; width:46px; height:46px; border-radius:50%;
+    background:var(--accent); color:#fff; font-size:1.2rem;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .mic.listening{background:var(--danger); animation:pulse 1s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,92,109,.45)} 100%{box-shadow:0 0 0 16px rgba(224,92,109,0)}}
+  .bigmic{
+    width:100%; padding:16px; font-size:1.05rem; border-radius:16px;
+    background:var(--accent); color:#fff; display:flex; gap:10px; align-items:center; justify-content:center;
+  }
+  .bigmic.listening{background:var(--danger); animation:pulse 1s infinite}
+
+  /* Chips */
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0}
+  .chip{
+    border-radius:999px; padding:6px 13px; font-size:.83rem; font-weight:600;
+    background:#efeef6; color:#5d5a70; border:1.5px solid transparent;
+  }
+  .chip.active{background:var(--accent); color:#fff}
+  .chip .x{margin-left:6px; opacity:.7}
+  .dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:baseline}
+
+  /* Gedanken-Liste */
+  .thought{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:13px 14px; margin-bottom:10px;
+  }
+  .thought .text{font-size:.97rem; line-height:1.45; overflow-wrap:anywhere}
+  .thought .meta{display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap}
+  .tag{font-size:.74rem; font-weight:700; padding:3px 10px; border-radius:999px}
+  .thought .when{font-size:.74rem; color:var(--muted); margin-left:auto}
+  .thought .actions{display:flex; gap:2px}
+
+  /* Kategorien */
+  .cat-card .cat-head{display:flex; align-items:center; gap:10px}
+  .cat-card .cat-name{font-weight:700; font-size:1rem}
+  .cat-card .count{font-size:.78rem; color:var(--muted); margin-left:auto; flex:none}
+  .subchips{display:flex; flex-wrap:wrap; gap:7px; margin-top:10px}
+  .subchip{font-size:.8rem; padding:5px 11px; border-radius:999px; background:#f1f0f8; color:#55526a; font-weight:600}
+  .subchip button{background:none; padding:0 0 0 6px; color:#a5a2b8; font-weight:700}
+  .addsub{margin-top:10px}
+  .addsub input{padding:8px 12px}
+
+  /* Kalender */
+  .cal-toolbar{display:flex; gap:6px; align-items:center; margin-bottom:12px; flex-wrap:wrap}
+  .cal-toolbar .title{font-weight:700; font-size:1.02rem; flex:1; text-align:center; min-width:120px}
+  .seg{display:flex; background:#efeef6; border-radius:12px; padding:3px; gap:2px; width:100%; margin-bottom:12px}
+  .seg button{flex:1; background:transparent; color:#6d6a80; padding:9px 4px; font-size:.86rem; border-radius:10px}
+  .seg button.active{background:#fff; color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+  .cal-grid .dow{text-align:center; font-size:.7rem; font-weight:700; color:var(--muted); padding:4px 0}
+  .cal-cell{
+    background:#fff; border-radius:10px; min-height:64px; padding:5px 4px;
+    font-size:.78rem; box-shadow:var(--shadow); cursor:pointer; overflow:hidden;
+  }
+  .cal-cell.dim{opacity:.38}
+  .cal-cell .d{font-weight:700; margin-bottom:3px}
+  .cal-cell.today .d{background:var(--accent); color:#fff; border-radius:8px; padding:1px 6px; display:inline-block}
+  .evt-chip{font-size:.64rem; font-weight:600; border-radius:6px; padding:1px 5px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .agenda-day{margin-bottom:12px}
+  .agenda-day .dhead{font-weight:700; font-size:.88rem; margin-bottom:6px}
+  .agenda-day .dhead.today{color:var(--accent)}
+  .evt{
+    background:var(--card); border-radius:14px; box-shadow:var(--shadow);
+    padding:11px 13px; margin-bottom:8px; display:flex; gap:10px; align-items:center;
+  }
+  .evt .time{font-weight:700; font-size:.82rem; color:var(--accent); flex:none; width:52px}
+  .evt .etitle{font-weight:600; font-size:.93rem; overflow-wrap:anywhere}
+  .evt .del{margin-left:auto}
+  .year-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px}
+  .mini{background:#fff; border-radius:14px; box-shadow:var(--shadow); padding:10px; cursor:pointer}
+  .mini .mname{font-weight:700; font-size:.82rem; margin-bottom:6px; color:var(--accent)}
+  .mini table{width:100%; border-collapse:collapse; font-size:.58rem}
+  .mini td{text-align:center; padding:1.5px 0; color:#6d6a80}
+  .mini td.has{background:var(--accent-soft); border-radius:4px; font-weight:700; color:var(--accent)}
+  .mini td.tdy{background:var(--accent); color:#fff; border-radius:4px; font-weight:700}
+
+  /* Start-Ansicht */
+  .stat-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px}
+  .stat{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px; text-align:center}
+  .stat .n{font-size:1.5rem; font-weight:800; color:var(--accent)}
+  .stat .l{font-size:.76rem; color:var(--muted); margin-top:2px}
+
+  /* Bottom-Navigation */
+  nav.bottomnav{
+    position:fixed; bottom:0; left:0; right:0; z-index:30;
+    background:rgba(255,255,255,.96); backdrop-filter:blur(10px);
+    display:flex; border-top:1px solid #e9e7f3;
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+  nav.bottomnav button{
+    flex:1; background:none; color:var(--muted); display:flex; flex-direction:column;
+    align-items:center; gap:2px; font-size:.68rem; font-weight:600; padding:7px 2px; border-radius:12px;
+  }
+  nav.bottomnav button .ico{font-size:1.3rem}
+  nav.bottomnav button.active{color:var(--accent); background:var(--accent-soft)}
+
+  /* Modal */
+  #backdrop{
+    position:fixed; inset:0; background:rgba(35,30,60,.45); z-index:50;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  #backdrop.open{display:flex}
+  #modal{
+    background:#fff; border-radius:22px 22px 0 0; width:100%; max-width:560px;
+    padding:20px 18px calc(20px + env(safe-area-inset-bottom)); max-height:85vh; overflow-y:auto;
+    animation:up .2s ease;
+  }
+  @keyframes up{from{transform:translateY(30px); opacity:0} to{transform:none; opacity:1}}
+  #modal h3{margin:0 0 14px; font-size:1.05rem}
+  #modal label{display:block; font-size:.78rem; font-weight:700; color:var(--muted); margin:12px 0 5px}
+  #modal .btns{display:flex; gap:10px; margin-top:18px}
+  #modal .btns button{flex:1; padding:13px}
+
+  /* Toast */
+  #toast{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:calc(90px + env(safe-area-inset-bottom));
+    background:#2b2a33; color:#fff; padding:11px 18px; border-radius:999px; font-size:.85rem;
+    z-index:60; opacity:0; pointer-events:none; transition:opacity .25s; max-width:88vw; text-align:center;
+  }
+  #toast.show{opacity:1}
+
+  .empty{color:var(--muted); font-size:.88rem; text-align:center; padding:20px 10px}
+
+  .syncpill{
+    margin-top:8px; background:rgba(255,255,255,.22); color:#fff;
+    font-size:.72rem; padding:5px 11px; border-radius:999px; font-weight:600;
+  }
+  .syncpill.ok{background:rgba(120,255,180,.25)}
+  .syncpill.err{background:rgba(255,120,120,.35)}
+
+  @media(min-width:700px){
+    header{border-radius:0}
+    .cal-cell{min-height:88px}
+    .seg{width:auto}
+    nav.bottomnav{
+      top:0; bottom:auto; left:auto; right:16px; background:none; border:none; backdrop-filter:none;
+      padding:14px 0; width:auto; gap:4px;
+    }
+    nav.bottomnav button{flex-direction:row; gap:6px; color:rgba(255,255,255,.8); font-size:.82rem; padding:8px 14px}
+    nav.bottomnav button .ico{font-size:1rem}
+    nav.bottomnav button.active{color:#fff; background:rgba(255,255,255,.22)}
+    body{padding-bottom:24px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌸 Mein Dashboard</h1>
+  <div class="sub" id="headerDate"></div>
+  <button class="syncpill" id="syncBadge" onclick="openSyncModal()">☁️ Sync einrichten</button>
+</header>
+
+<main>
+
+  <!-- START -->
+  <section class="view active" id="view-start">
+    <div class="card">
+      <h2>Schneller Gedanke <span class="hint">— einfach einsprechen</span></h2>
+      <button class="bigmic" id="quickMic">🎤 Gedanken einsprechen</button>
+      <div class="row" style="margin-top:10px">
+        <input id="quickText" placeholder="… oder hier eintippen/diktieren">
+        <button class="primary" style="flex:none" onclick="quickSave()">＋</button>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="n" id="statThoughts">0</div><div class="l">Gedanken</div></div>
+      <div class="stat"><div class="n" id="statEvents">0</div><div class="l">Termine heute</div></div>
+    </div>
+
+    <div class="card">
+      <h2>📅 Heute</h2>
+      <div id="todayEvents"></div>
+    </div>
+
+    <div class="card">
+      <h2>💭 Neueste Gedanken</h2>
+      <div id="recentThoughts"></div>
+    </div>
+  </section>
+
+  <!-- GEDANKEN -->
+  <section class="view" id="view-thoughts">
+    <div class="card">
+      <div class="row">
+        <button class="mic" id="thoughtMic">🎤</button>
+        <textarea id="thoughtText" rows="2" placeholder="Was geht dir durch den Kopf?"></textarea>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <select id="thoughtCat"></select>
+        <select id="thoughtSub"></select>
+        <button class="primary" style="flex:none" onclick="saveThought()">Speichern</button>
+      </div>
+    </div>
+    <div class="chips" id="filterChips"></div>
+    <div id="thoughtList"></div>
+  </section>
+
+  <!-- KALENDER -->
+  <section class="view" id="view-calendar">
+    <div class="seg" id="calSeg">
+      <button data-v="day">Tag</button>
+      <button data-v="week">Woche</button>
+      <button data-v="month" class="active">Monat</button>
+      <button data-v="year">Jahr</button>
+    </div>
+    <div class="cal-toolbar">
+      <button onclick="calMove(-1)">‹</button>
+      <div class="title" id="calTitle"></div>
+      <button onclick="calMove(1)">›</button>
+      <button onclick="calToday()" style="flex:none">Heute</button>
+    </div>
+    <div id="calBody"></div>
+    <button class="primary" style="width:100%; margin-top:14px; padding:14px" onclick="openEventModal()">＋ Neuer Termin</button>
+  </section>
+
+  <!-- KATEGORIEN -->
+  <section class="view" id="view-categories">
+    <div class="card">
+      <h2>Neue Kategorie</h2>
+      <div class="row">
+        <button class="mic" id="catMic">🎤</button>
+        <input id="newCatName" placeholder="Name der Kategorie">
+        <button class="primary" style="flex:none" onclick="addCategory()">＋</button>
+      </div>
+    </div>
+    <div id="catList"></div>
+  </section>
+
+</main>
+
+<nav class="bottomnav">
+  <button data-view="start" class="active"><span class="ico">🏠</span>Start</button>
+  <button data-view="thoughts"><span class="ico">💭</span>Gedanken</button>
+  <button data-view="calendar"><span class="ico">📅</span>Kalender</button>
+  <button data-view="categories"><span class="ico">🗂️</span>Kategorien</button>
+</nav>
+
+<div id="backdrop"><div id="modal"></div></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ---------- Daten ---------- */
+const COLORS = ['#7c6ff0','#f0862b','#2bb5a0','#e05c8d','#4a90e2','#c9a227','#8e6fc0','#5aa84e'];
+const STORE_KEY = 'mein-dashboard-v1';
+
+let data = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      d.tombs = d.tombs || {};
+      [...d.categories, ...d.thoughts, ...d.events].forEach(x=>{ if(!x.mt) x.mt = x.at || Date.now(); });
+      return d;
+    }
+  }catch(e){}
+  const now = Date.now();
+  return {
+    categories:[
+      {id:uid(), name:'Persönliches', color:COLORS[0], mt:now, subs:[{id:uid(),name:'Gefühle'},{id:uid(),name:'Ziele'}]},
+      {id:uid(), name:'Familie & Freunde', color:COLORS[3], mt:now, subs:[]},
+      {id:uid(), name:'Ideen', color:COLORS[2], mt:now, subs:[]},
+      {id:uid(), name:'Aufgaben', color:COLORS[1], mt:now, subs:[]}
+    ],
+    thoughts:[], events:[], tombs:{}
+  };
+}
+function save(){
+  localStorage.setItem(STORE_KEY, JSON.stringify(data));
+  schedulePush();
+}
+function bury(id){ data.tombs[id] = Date.now(); }
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function cat(id){ return data.categories.find(c=>c.id===id); }
+function sub(c,id){ return c ? c.subs.find(s=>s.id===id) : null; }
+
+/* ---------- Hilfen ---------- */
+const $ = s => document.querySelector(s);
+const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const DOWS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fromIso(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function fmtLong(d){ return DOWS[(d.getDay()+6)%7]+', '+d.getDate()+'. '+MONTHS[d.getMonth()]+' '+d.getFullYear(); }
+function esc(s){ const el=document.createElement('span'); el.textContent=s; return el.innerHTML; }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600); }
+
+/* ---------- Spracheingabe ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+function dictate(btn, onText){
+  if(!SR){
+    toast('Dein Browser unterstützt keine direkte Spracheingabe – tippe ins Feld und nutze das 🎤 deiner Handy-Tastatur.');
+    return;
+  }
+  if(btn._rec){ btn._rec.stop(); return; }
+  const rec = new SR();
+  rec.lang = 'de-DE';
+  rec.interimResults = false;
+  rec.maxAlternatives = 1;
+  btn._rec = rec;
+  btn.classList.add('listening');
+  const prevLabel = btn.dataset.label;
+  if(btn.classList.contains('bigmic')) btn.textContent = '🔴 Ich höre zu … (zum Stoppen tippen)';
+  rec.onresult = e => {
+    const text = Array.from(e.results).map(r=>r[0].transcript).join(' ').trim();
+    if(text) onText(text);
+  };
+  rec.onerror = e => {
+    if(e.error==='not-allowed') toast('Bitte erlaube den Mikrofon-Zugriff in deinem Browser.');
+    else if(e.error!=='aborted' && e.error!=='no-speech') toast('Spracheingabe hat nicht geklappt – versuch es nochmal.');
+  };
+  rec.onend = () => {
+    btn.classList.remove('listening');
+    btn._rec = null;
+    if(btn.classList.contains('bigmic')) btn.textContent = '🎤 Gedanken einsprechen';
+  };
+  rec.start();
+}
+
+/* ---------- Navigation ---------- */
+document.querySelectorAll('nav.bottomnav button').forEach(b=>{
+  b.onclick = () => showView(b.dataset.view);
+});
+function showView(v){
+  document.querySelectorAll('section.view').forEach(s=>s.classList.toggle('active', s.id==='view-'+v));
+  document.querySelectorAll('nav.bottomnav button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  render();
+  window.scrollTo({top:0});
+}
+
+/* ---------- Start ---------- */
+function quickSave(){
+  const text = $('#quickText').value.trim();
+  if(!text) { toast('Sprich oder schreib zuerst einen Gedanken.'); return; }
+  $('#quickText').value = '';
+  openAssignModal(text);
+}
+$('#quickMic').onclick = () => dictate($('#quickMic'), text => openAssignModal(text));
+
+function openAssignModal(text){
+  const opts = data.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  openModal(`
+    <h3>💭 Gedanke speichern</h3>
+    <textarea id="mText" rows="3">${esc(text)}</textarea>
+    <label>Kategorie</label>
+    <select id="mCat" onchange="fillSubSelect('mCat','mSub')"><option value="">– Ohne Kategorie –</option>${opts}</select>
+    <label>Unterkategorie</label>
+    <select id="mSub"><option value="">–</option></select>
+    <div class="btns">
+      <button onclick="closeModal()">Abbrechen</button>
+      <button class="primary" onclick="confirmAssign()">Speichern</button>
+    </div>`);
+}
+function confirmAssign(){
+  const text = $('#mText').value.trim();
+  if(!text){ closeModal(); return; }
+  const now = Date.now();
+  data.thoughts.unshift({id:uid(), text, catId:$('#mCat').value||null, subId:$('#mSub').value||null, at:now, mt:now});
+  save(); closeModal(); render();
+  toast('Gedanke gespeichert ✓');
+}
+function fillSubSelect(catSel, subSel){
+  const c = cat($('#'+catSel).value);
+  $('#'+subSel).innerHTML = '<option value="">–</option>' +
+    (c ? c.subs.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('') : '');
+}
+
+/* ---------- Gedanken ---------- */
+let filterCat = 'all';
+$('#thoughtMic').onclick = () => dictate($('#thoughtMic'), t => {
+  const ta = $('#thoughtText');
+  ta.value = (ta.value ? ta.value + ' ' : '') + t;
+});
+function saveThought(){
+  const text = $('#thoughtText').value.trim();
+  if(!text){ toast('Sprich oder schreib zuerst einen Gedanken.'); return; }
+  const now = Date.now();
+  data.thoughts.unshift({id:uid(), text, catId:$('#thoughtCat').value||null, subId:$('#thoughtSub').value||null, at:now, mt:now});
+  $('#thoughtText').value='';
+  save(); render(); toast('Gedanke gespeichert ✓');
+}
+function deleteThought(id){
+  data.thoughts = data.thoughts.filter(t=>t.id!==id);
+  bury(id);
+  save(); render(); toast('Gelöscht');
+}
+function editThought(id){
+  const t = data.thoughts.find(x=>x.id===id);
+  if(!t) return;
+  const opts = data.categories.map(c=>`<option value="${c.id}" ${c.id===t.catId?'selected':''}>${esc(c.name)}</option>`).join('');
+  openModal(`
+    <h3>Gedanke bearbeiten</h3>
+    <textarea id="mText" rows="3">${esc(t.text)}</textarea>
+    <label>Kategorie</label>
+    <select id="mCat" onchange="fillSubSelect('mCat','mSub')"><option value="">– Ohne Kategorie –</option>${opts}</select>
+    <label>Unterkategorie</label>
+    <select id="mSub"><option value="">–</option></select>
+    <div class="btns">
+      <button onclick="closeModal()">Abbrechen</button>
+      <button class="primary" onclick="confirmEdit('${id}')">Speichern</button>
+    </div>`);
+  fillSubSelect('mCat','mSub');
+  if(t.subId) $('#mSub').value = t.subId;
+}
+function confirmEdit(id){
+  const t = data.thoughts.find(x=>x.id===id);
+  if(t){
+    t.text = $('#mText').value.trim() || t.text;
+    t.catId = $('#mCat').value || null;
+    t.subId = $('#mSub').value || null;
+    t.mt = Date.now();
+    save();
+  }
+  closeModal(); render();
+}
+function thoughtCard(t){
+  const c = cat(t.catId), s = sub(c, t.subId);
+  const d = new Date(t.at);
+  const when = iso(d)===iso(new Date()) ? 'Heute, '+d.toTimeString().slice(0,5) : d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();
+  return `<div class="thought">
+    <div class="text">${esc(t.text)}</div>
+    <div class="meta">
+      ${c?`<span class="tag" style="background:${c.color}22; color:${c.color}">${esc(c.name)}${s?' › '+esc(s.name):''}</span>`:'<span class="tag" style="background:#eee; color:#999">ohne Kategorie</span>'}
+      <span class="when">${when}</span>
+      <span class="actions">
+        <button class="ghost" onclick="editThought('${t.id}')">✏️</button>
+        <button class="ghost" onclick="deleteThought('${t.id}')">🗑️</button>
+      </span>
+    </div>
+  </div>`;
+}
+
+/* ---------- Kategorien ---------- */
+$('#catMic').onclick = () => dictate($('#catMic'), t => $('#newCatName').value = t);
+function addCategory(){
+  const name = $('#newCatName').value.trim();
+  if(!name){ toast('Sprich oder schreib zuerst einen Namen.'); return; }
+  data.categories.push({id:uid(), name, color:COLORS[data.categories.length % COLORS.length], mt:Date.now(), subs:[]});
+  $('#newCatName').value='';
+  save(); render(); toast('Kategorie „'+name+'" angelegt ✓');
+}
+function renameCategory(id){
+  const c = cat(id); if(!c) return;
+  openModal(`
+    <h3>Kategorie umbenennen</h3>
+    <div class="row"><button class="mic" id="mMic">🎤</button><input id="mName" value="${esc(c.name)}"></div>
+    <div class="btns">
+      <button onclick="closeModal()">Abbrechen</button>
+      <button class="primary" onclick="confirmRename('${id}')">Speichern</button>
+    </div>`);
+  $('#mMic').onclick = () => dictate($('#mMic'), t => $('#mName').value = t);
+}
+function confirmRename(id){
+  const c = cat(id);
+  const name = $('#mName').value.trim();
+  if(c && name){ c.name = name; c.mt = Date.now(); }
+  save(); closeModal(); render();
+}
+function deleteCategory(id){
+  const c = cat(id); if(!c) return;
+  const n = data.thoughts.filter(t=>t.catId===id).length;
+  openModal(`
+    <h3>„${esc(c.name)}" löschen?</h3>
+    <p class="muted">${n ? n+' Gedanke(n) behalten ihren Text, verlieren aber die Kategorie.' : 'Diese Kategorie ist leer.'}</p>
+    <div class="btns">
+      <button onclick="closeModal()">Abbrechen</button>
+      <button class="danger" onclick="confirmDeleteCat('${id}')">Löschen</button>
+    </div>`);
+}
+function confirmDeleteCat(id){
+  data.categories = data.categories.filter(c=>c.id!==id);
+  bury(id);
+  const now = Date.now();
+  data.thoughts.forEach(t=>{ if(t.catId===id){ t.catId=null; t.subId=null; t.mt=now; } });
+  data.events.forEach(e=>{ if(e.catId===id){ e.catId=null; e.mt=now; } });
+  save(); closeModal(); render(); toast('Kategorie gelöscht');
+}
+function addSub(catId){
+  const inp = document.getElementById('subinp-'+catId);
+  const name = inp.value.trim();
+  if(!name){ toast('Sprich oder schreib zuerst einen Namen.'); return; }
+  const c = cat(catId);
+  c.subs.push({id:uid(), name});
+  c.mt = Date.now();
+  save(); render();
+}
+function deleteSub(catId, subId){
+  const c = cat(catId); if(!c) return;
+  c.subs = c.subs.filter(s=>s.id!==subId);
+  c.mt = Date.now();
+  bury(subId);
+  data.thoughts.forEach(t=>{ if(t.subId===subId){ t.subId=null; t.mt=c.mt; } });
+  save(); render();
+}
+
+/* ---------- Kalender ---------- */
+let calView = 'month';
+let calDate = new Date();
+document.querySelectorAll('#calSeg button').forEach(b=>{
+  b.onclick = () => {
+    calView = b.dataset.v;
+    document.querySelectorAll('#calSeg button').forEach(x=>x.classList.toggle('active', x===b));
+    renderCalendar();
+  };
+});
+function calToday(){ calDate = new Date(); renderCalendar(); }
+function calMove(dir){
+  const d = new Date(calDate);
+  if(calView==='day') d.setDate(d.getDate()+dir);
+  if(calView==='week') d.setDate(d.getDate()+7*dir);
+  if(calView==='month') d.setMonth(d.getMonth()+dir);
+  if(calView==='year') d.setFullYear(d.getFullYear()+dir);
+  calDate = d;
+  renderCalendar();
+}
+function eventsOn(isoDate){
+  return data.events.filter(e=>e.date===isoDate).sort((a,b)=>(a.time||'99')<(b.time||'99')?-1:1);
+}
+function weekStart(d){
+  const x = new Date(d);
+  x.setDate(x.getDate() - ((x.getDay()+6)%7));
+  return x;
+}
+function renderCalendar(){
+  const body = $('#calBody');
+  const title = $('#calTitle');
+  const todayIso = iso(new Date());
+
+  if(calView==='month'){
+    title.textContent = MONTHS[calDate.getMonth()]+' '+calDate.getFullYear();
+    const first = new Date(calDate.getFullYear(), calDate.getMonth(), 1);
+    const start = weekStart(first);
+    let html = '<div class="cal-grid">'+DOWS.map(d=>`<div class="dow">${d}</div>`).join('');
+    const cur = new Date(start);
+    for(let i=0;i<42;i++){
+      const di = iso(cur);
+      const evts = eventsOn(di);
+      const dim = cur.getMonth()!==calDate.getMonth();
+      html += `<div class="cal-cell ${dim?'dim':''} ${di===todayIso?'today':''}" onclick="gotoDay('${di}')">
+        <div class="d">${cur.getDate()}</div>
+        ${evts.slice(0,2).map(e=>{const c=cat(e.catId); return `<div class="evt-chip" style="background:${c?c.color+'26':'#eee'}; color:${c?c.color:'#777'}">${esc(e.title)}</div>`;}).join('')}
+        ${evts.length>2?`<div class="evt-chip" style="background:#eee;color:#888">+${evts.length-2}</div>`:''}
+      </div>`;
+      cur.setDate(cur.getDate()+1);
+      if(i>=34 && cur.getMonth()!==calDate.getMonth() && (i+1)%7===0) break;
+    }
+    body.innerHTML = html+'</div>';
+  }
+
+  if(calView==='week'){
+    const start = weekStart(calDate);
+    const end = new Date(start); end.setDate(end.getDate()+6);
+    title.textContent = start.getDate()+'.'+(start.getMonth()+1)+'. – '+end.getDate()+'.'+(end.getMonth()+1)+'.'+end.getFullYear();
+    let html = '';
+    const cur = new Date(start);
+    for(let i=0;i<7;i++){
+      const di = iso(cur);
+      const evts = eventsOn(di);
+      html += `<div class="agenda-day">
+        <div class="dhead ${di===todayIso?'today':''}">${fmtLong(new Date(cur))}</div>
+        ${evts.length ? evts.map(evtCard).join('') : '<div class="muted" style="padding:2px 6px 6px">Keine Termine</div>'}
+      </div>`;
+      cur.setDate(cur.getDate()+1);
+    }
+    body.innerHTML = html;
+  }
+
+  if(calView==='day'){
+    const di = iso(calDate);
+    title.textContent = fmtLong(calDate);
+    const evts = eventsOn(di);
+    const thoughts = data.thoughts.filter(t=>iso(new Date(t.at))===di);
+    body.innerHTML =
+      (evts.length ? evts.map(evtCard).join('') : '<div class="empty">Keine Termine an diesem Tag.</div>') +
+      (thoughts.length ? '<h2 style="margin-top:16px">💭 Gedanken an diesem Tag</h2>'+thoughts.map(thoughtCard).join('') : '');
+  }
+
+  if(calView==='year'){
+    title.textContent = String(calDate.getFullYear());
+    const y = calDate.getFullYear();
+    let html = '<div class="year-grid">';
+    for(let m=0;m<12;m++){
+      const first = new Date(y,m,1);
+      const days = new Date(y,m+1,0).getDate();
+      const offset = (first.getDay()+6)%7;
+      let rows = '<tr>'+'<td></td>'.repeat(offset);
+      for(let d=1; d<=days; d++){
+        const di = iso(new Date(y,m,d));
+        const cls = di===todayIso ? 'tdy' : (eventsOn(di).length ? 'has' : '');
+        rows += `<td class="${cls}">${d}</td>`;
+        if((offset+d)%7===0) rows += '</tr><tr>';
+      }
+      html += `<div class="mini" onclick="gotoMonth(${y},${m})">
+        <div class="mname">${MONTHS[m]}</div>
+        <table>${rows}</tr></table>
+      </div>`;
+    }
+    body.innerHTML = html+'</div>';
+  }
+}
+function gotoDay(di){
+  calDate = fromIso(di); calView = 'day';
+  document.querySelectorAll('#calSeg button').forEach(x=>x.classList.toggle('active', x.dataset.v==='day'));
+  renderCalendar();
+}
+function gotoMonth(y,m){
+  calDate = new Date(y,m,1); calView = 'month';
+  document.querySelectorAll('#calSeg button').forEach(x=>x.classList.toggle('active', x.dataset.v==='month'));
+  renderCalendar();
+}
+function evtCard(e){
+  const c = cat(e.catId);
+  return `<div class="evt" style="border-left:4px solid ${c?c.color:'#ccc'}">
+    <span class="time">${e.time || 'ganztags'}</span>
+    <span class="etitle">${esc(e.title)}${c?` <span class="tag" style="background:${c.color}22;color:${c.color}">${esc(c.name)}</span>`:''}</span>
+    <button class="ghost del" onclick="deleteEvent('${e.id}')">🗑️</button>
+  </div>`;
+}
+function openEventModal(){
+  const opts = data.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  const preset = calView==='day' || calView==='week' ? iso(calDate) : iso(new Date());
+  openModal(`
+    <h3>📅 Neuer Termin</h3>
+    <div class="row"><button class="mic" id="mMic">🎤</button><input id="mTitle" placeholder="Was steht an?"></div>
+    <label>Datum</label>
+    <input type="date" id="mDate" value="${preset}">
+    <label>Uhrzeit (optional)</label>
+    <input type="time" id="mTime">
+    <label>Kategorie</label>
+    <select id="mCat"><option value="">– Ohne Kategorie –</option>${opts}</select>
+    <div class="btns">
+      <button onclick="closeModal()">Abbrechen</button>
+      <button class="primary" onclick="confirmEvent()">Speichern</button>
+    </div>`);
+  $('#mMic').onclick = () => dictate($('#mMic'), t => $('#mTitle').value = t);
+}
+function confirmEvent(){
+  const title = $('#mTitle').value.trim();
+  const date = $('#mDate').value;
+  if(!title || !date){ toast('Bitte Titel und Datum angeben.'); return; }
+  data.events.push({id:uid(), title, date, time:$('#mTime').value||null, catId:$('#mCat').value||null, mt:Date.now()});
+  save(); closeModal(); render(); toast('Termin gespeichert ✓');
+}
+function deleteEvent(id){
+  data.events = data.events.filter(e=>e.id!==id);
+  bury(id);
+  save(); render(); toast('Termin gelöscht');
+}
+
+/* ---------- GitHub-Synchronisation ---------- */
+const SYNC = { owner:'mariealexandrabraubach54-png', repo:'mein-dashboard-daten', path:'data.json' };
+const TOKEN_KEY = 'mein-dashboard-token';
+let syncState = { lastOk:null, error:null, busy:false };
+let pushTimer = null;
+
+function syncToken(){ return localStorage.getItem(TOKEN_KEY) || ''; }
+function syncReady(){ return syncToken() && SYNC.owner !== '__OWNER__'; }
+
+function b64enc(s){ return btoa(unescape(encodeURIComponent(s))); }
+function b64dec(s){ return decodeURIComponent(escape(atob(s.replace(/\n/g,'')))); }
+
+async function ghGet(){
+  const r = await fetch(`https://api.github.com/repos/${SYNC.owner}/${SYNC.repo}/contents/${SYNC.path}`, {
+    headers:{ 'Authorization':'Bearer '+syncToken(), 'Accept':'application/vnd.github+json' },
+    cache:'no-store'
+  });
+  if(r.status === 404) return { remote:null, sha:null };
+  if(!r.ok) throw new Error('GET '+r.status);
+  const j = await r.json();
+  return { remote: JSON.parse(b64dec(j.content)), sha: j.sha };
+}
+async function ghPut(content, sha){
+  const body = { message:'Sync '+new Date().toISOString(), content: b64enc(JSON.stringify(content)) };
+  if(sha) body.sha = sha;
+  const r = await fetch(`https://api.github.com/repos/${SYNC.owner}/${SYNC.repo}/contents/${SYNC.path}`, {
+    method:'PUT',
+    headers:{ 'Authorization':'Bearer '+syncToken(), 'Accept':'application/vnd.github+json' },
+    body: JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error('PUT '+r.status);
+}
+
+function mergeLists(a, b, tombs){
+  const map = new Map();
+  [...a, ...b].forEach(x=>{
+    const cur = map.get(x.id);
+    if(!cur || (x.mt||0) > (cur.mt||0)) map.set(x.id, x);
+  });
+  return [...map.values()].filter(x => !(tombs[x.id] && tombs[x.id] >= (x.mt||0)));
+}
+function mergeCats(a, b, tombs){
+  const merged = mergeLists(a, b, tombs).map(c=>({...c}));
+  merged.forEach(c=>{
+    // Unterkategorien beider Seiten vereinen, gelöschte (Tombstones) aussortieren
+    const twins = [...a, ...b].filter(x=>x.id===c.id);
+    const subMap = new Map();
+    twins.forEach(t=>(t.subs||[]).forEach(s=>subMap.set(s.id, s)));
+    c.subs = [...subMap.values()].filter(s=>!tombs[s.id]);
+  });
+  return merged;
+}
+function mergeData(local, remote){
+  const tombs = {};
+  [local.tombs||{}, remote.tombs||{}].forEach(t=>Object.entries(t).forEach(([k,v])=>{ if(!tombs[k]||v>tombs[k]) tombs[k]=v; }));
+  return {
+    categories: mergeCats(local.categories, remote.categories, tombs),
+    thoughts: mergeLists(local.thoughts, remote.thoughts, tombs).sort((x,y)=>y.at-x.at),
+    events: mergeLists(local.events, remote.events, tombs),
+    tombs
+  };
+}
+
+async function syncNow(){
+  if(!syncReady() || syncState.busy || !navigator.onLine) return;
+  syncState.busy = true;
+  updateSyncBadge('…');
+  try{
+    const { remote, sha } = await ghGet();
+    const merged = remote ? mergeData(data, remote) : data;
+    const mergedStr = JSON.stringify(merged);
+    if(mergedStr !== JSON.stringify(data)){
+      data = merged;
+      localStorage.setItem(STORE_KEY, mergedStr);
+      render();
+    }
+    if(!remote || mergedStr !== JSON.stringify(remote)){
+      await ghPut(merged, sha);
+    }
+    syncState.lastOk = new Date();
+    syncState.error = null;
+  }catch(e){
+    syncState.error = String(e.message||e);
+  }
+  syncState.busy = false;
+  updateSyncBadge();
+}
+function schedulePush(){
+  if(!syncReady()) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(syncNow, 1500);
+}
+function updateSyncBadge(busy){
+  const b = $('#syncBadge');
+  if(!syncReady()){ b.textContent = '☁️ Sync einrichten'; b.className = 'syncpill'; return; }
+  if(busy){ b.textContent = '☁️ synchronisiere …'; b.className = 'syncpill'; return; }
+  if(syncState.error){ b.textContent = '⚠️ Sync-Problem – tippen'; b.className = 'syncpill err'; return; }
+  b.textContent = '✓ synchronisiert' + (syncState.lastOk ? ' ' + syncState.lastOk.toTimeString().slice(0,5) : '');
+  b.className = 'syncpill ok';
+}
+function openSyncModal(){
+  if(SYNC.owner === '__OWNER__'){
+    openModal(`<h3>☁️ Synchronisation</h3>
+      <p class="muted">Die Synchronisation wird gerade eingerichtet – hier gibt es bald mehr.</p>
+      <div class="btns"><button class="primary" onclick="closeModal()">OK</button></div>`);
+    return;
+  }
+  if(syncReady()){
+    openModal(`<h3>☁️ Synchronisation aktiv</h3>
+      <p class="muted">Deine Daten werden mit deinem privaten GitHub-Speicher abgeglichen
+      (${syncState.lastOk ? 'zuletzt um '+syncState.lastOk.toTimeString().slice(0,5)+' Uhr' : 'noch kein Abgleich'}).
+      ${syncState.error ? '<br><b style="color:var(--danger)">Letzter Fehler: '+esc(syncState.error)+'</b>' : ''}</p>
+      <div class="btns">
+        <button class="danger" onclick="removeSyncToken()">Von diesem Gerät trennen</button>
+        <button class="primary" onclick="closeModal(); syncNow()">Jetzt abgleichen</button>
+      </div>`);
+    return;
+  }
+  openModal(`<h3>☁️ Sync einrichten</h3>
+    <p class="muted">Damit dieses Gerät deine Daten mitlesen und speichern darf, braucht es einmalig deinen
+    <b>GitHub-Schlüssel</b> (Token). Füge ihn hier ein – er bleibt nur auf diesem Gerät gespeichert.</p>
+    <label>GitHub-Token</label>
+    <input id="mToken" placeholder="github_pat_…" autocomplete="off">
+    <div class="btns">
+      <button onclick="closeModal()">Abbrechen</button>
+      <button class="primary" onclick="saveSyncToken()">Verbinden</button>
+    </div>`);
+}
+async function saveSyncToken(){
+  const t = $('#mToken').value.trim();
+  if(!t){ toast('Bitte zuerst den Schlüssel einfügen.'); return; }
+  localStorage.setItem(TOKEN_KEY, t);
+  closeModal();
+  toast('Verbinde …');
+  await syncNow();
+  if(syncState.error){
+    localStorage.removeItem(TOKEN_KEY);
+    toast('Das hat nicht geklappt – bitte prüfe den Schlüssel.');
+    updateSyncBadge();
+  } else {
+    toast('Synchronisation aktiv ✓');
+  }
+}
+function removeSyncToken(){
+  localStorage.removeItem(TOKEN_KEY);
+  closeModal(); updateSyncBadge();
+  toast('Sync auf diesem Gerät getrennt');
+}
+setInterval(syncNow, 45000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) syncNow(); });
+window.addEventListener('online', syncNow);
+
+/* ---------- Modal ---------- */
+function openModal(html){
+  $('#modal').innerHTML = html;
+  $('#backdrop').classList.add('open');
+}
+function closeModal(){ $('#backdrop').classList.remove('open'); }
+$('#backdrop').addEventListener('click', e => { if(e.target.id==='backdrop') closeModal(); });
+
+/* ---------- Rendern ---------- */
+function render(){
+  $('#headerDate').textContent = fmtLong(new Date());
+
+  /* Start */
+  const todayIso = iso(new Date());
+  const todayEvts = eventsOn(todayIso);
+  $('#statThoughts').textContent = data.thoughts.length;
+  $('#statEvents').textContent = todayEvts.length;
+  $('#todayEvents').innerHTML = todayEvts.length
+    ? todayEvts.map(evtCard).join('')
+    : '<div class="empty">Heute keine Termine 🎈</div>';
+  $('#recentThoughts').innerHTML = data.thoughts.length
+    ? data.thoughts.slice(0,4).map(thoughtCard).join('')
+    : '<div class="empty">Noch keine Gedanken – sprich einfach los!</div>';
+
+  /* Gedanken: Selects + Filter + Liste */
+  const catOpts = '<option value="">– Ohne Kategorie –</option>' + data.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  const selCat = $('#thoughtCat');
+  const keep = selCat.value;
+  selCat.innerHTML = catOpts;
+  selCat.value = keep;
+  selCat.onchange = () => fillSubSelect('thoughtCat','thoughtSub');
+  fillSubSelect('thoughtCat','thoughtSub');
+
+  $('#filterChips').innerHTML =
+    `<button class="chip ${filterCat==='all'?'active':''}" onclick="setFilter('all')">Alle</button>` +
+    data.categories.map(c=>`<button class="chip ${filterCat===c.id?'active':''}" onclick="setFilter('${c.id}')"><span class="dot" style="background:${filterCat===c.id?'#fff':c.color}"></span>${esc(c.name)}</button>`).join('');
+
+  const list = filterCat==='all' ? data.thoughts : data.thoughts.filter(t=>t.catId===filterCat);
+  $('#thoughtList').innerHTML = list.length
+    ? list.map(thoughtCard).join('')
+    : '<div class="empty">Hier ist noch nichts – sprich deinen ersten Gedanken ein! 🎤</div>';
+
+  /* Kategorien */
+  $('#catList').innerHTML = data.categories.map(c=>{
+    const n = data.thoughts.filter(t=>t.catId===c.id).length;
+    return `<div class="card cat-card">
+      <div class="cat-head">
+        <span class="dot" style="background:${c.color}; width:14px; height:14px"></span>
+        <span class="cat-name">${esc(c.name)}</span>
+        <span class="count">${n} Gedanke${n===1?'':'n'}</span>
+        <button class="ghost" onclick="renameCategory('${c.id}')">✏️</button>
+        <button class="ghost" onclick="deleteCategory('${c.id}')">🗑️</button>
+      </div>
+      <div class="subchips">
+        ${c.subs.map(s=>`<span class="subchip">${esc(s.name)}<button onclick="deleteSub('${c.id}','${s.id}')">✕</button></span>`).join('') || '<span class="muted">Noch keine Unterkategorien</span>'}
+      </div>
+      <div class="row addsub">
+        <input id="subinp-${c.id}" placeholder="Neue Unterkategorie …">
+        <button style="flex:none" onclick="addSub('${c.id}')">＋</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderCalendar();
+  updateSyncBadge();
+}
+render();
+syncNow();
+</script>
+</body>
+</html>

@@ -351,34 +351,45 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
 
 /* ---------- Spracheingabe ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-function dictate(btn, onText){
-  if(!SR){
-    toast('Dein Browser unterstützt keine direkte Spracheingabe – tippe ins Feld und nutze das 🎤 deiner Handy-Tastatur.');
-    return;
-  }
-  if(btn._rec){ btn._rec.stop(); return; }
+function dictate(btn, onText, fallbackSel){
+  // Öffnet als Notlösung das Textfeld, damit das Diktier-🎤 der Handy-Tastatur genutzt werden kann
+  const fallback = msg => {
+    if(fallbackSel){ const el = $(fallbackSel); if(el) el.focus(); }
+    toast(msg || 'Direkte Spracheingabe klappt hier nicht – tippe unten auf das 🎤 deiner Tastatur und sprich los.');
+  };
+  if(!SR){ fallback(); return; }
+  if(btn._rec){ try{ btn._rec.stop(); }catch(e){} return; }
   const rec = new SR();
   rec.lang = 'de-DE';
   rec.interimResults = false;
   rec.maxAlternatives = 1;
-  btn._rec = rec;
-  btn.classList.add('listening');
-  const prevLabel = btn.dataset.label;
-  if(btn.classList.contains('bigmic')) btn.textContent = '🔴 Ich höre zu … (zum Stoppen tippen)';
-  rec.onresult = e => {
-    const text = Array.from(e.results).map(r=>r[0].transcript).join(' ').trim();
-    if(text) onText(text);
-  };
-  rec.onerror = e => {
-    if(e.error==='not-allowed') toast('Bitte erlaube den Mikrofon-Zugriff in deinem Browser.');
-    else if(e.error!=='aborted' && e.error!=='no-speech') toast('Spracheingabe hat nicht geklappt – versuch es nochmal.');
-  };
-  rec.onend = () => {
+  let done = false;
+  const cleanup = () => {
     btn.classList.remove('listening');
     btn._rec = null;
     if(btn.classList.contains('bigmic')) btn.textContent = '🎤 Gedanken einsprechen';
   };
-  rec.start();
+  btn._rec = rec;
+  btn.classList.add('listening');
+  if(btn.classList.contains('bigmic')) btn.textContent = '🔴 Ich höre zu … (zum Stoppen tippen)';
+  rec.onresult = e => {
+    done = true;
+    const text = Array.from(e.results).map(r=>r[0].transcript).join(' ').trim();
+    if(text) onText(text);
+  };
+  rec.onerror = e => {
+    done = true;
+    if(e.error==='no-speech') toast('Ich habe nichts gehört – versuch es nochmal und sprich direkt los.');
+    else if(e.error==='not-allowed') fallback('Der Mikrofon-Zugriff ist blockiert – oder nutze einfach das 🎤 deiner Tastatur.');
+    else if(e.error!=='aborted') fallback();
+  };
+  rec.onend = () => {
+    cleanup();
+    // Manche Geräte (z.B. iPhone im App-Modus) beenden still ohne Ergebnis und ohne Fehler
+    if(!done) fallback();
+  };
+  try{ rec.start(); }
+  catch(err){ done = true; cleanup(); fallback(); }
 }
 
 /* ---------- Navigation ---------- */
@@ -399,7 +410,7 @@ function quickSave(){
   $('#quickText').value = '';
   openAssignModal(text);
 }
-$('#quickMic').onclick = () => dictate($('#quickMic'), text => openAssignModal(text));
+$('#quickMic').onclick = () => dictate($('#quickMic'), text => openAssignModal(text), '#quickText');
 
 function openAssignModal(text){
   const opts = data.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
@@ -434,7 +445,7 @@ let filterCat = 'all';
 $('#thoughtMic').onclick = () => dictate($('#thoughtMic'), t => {
   const ta = $('#thoughtText');
   ta.value = (ta.value ? ta.value + ' ' : '') + t;
-});
+}, '#thoughtText');
 function saveThought(){
   const text = $('#thoughtText').value.trim();
   if(!text){ toast('Sprich oder schreib zuerst einen Gedanken.'); return; }
@@ -495,7 +506,7 @@ function thoughtCard(t){
 }
 
 /* ---------- Kategorien ---------- */
-$('#catMic').onclick = () => dictate($('#catMic'), t => $('#newCatName').value = t);
+$('#catMic').onclick = () => dictate($('#catMic'), t => $('#newCatName').value = t, '#newCatName');
 function addCategory(){
   const name = $('#newCatName').value.trim();
   if(!name){ toast('Sprich oder schreib zuerst einen Namen.'); return; }
@@ -512,7 +523,7 @@ function renameCategory(id){
       <button onclick="closeModal()">Abbrechen</button>
       <button class="primary" onclick="confirmRename('${id}')">Speichern</button>
     </div>`);
-  $('#mMic').onclick = () => dictate($('#mMic'), t => $('#mName').value = t);
+  $('#mMic').onclick = () => dictate($('#mMic'), t => $('#mName').value = t, '#mName');
 }
 function confirmRename(id){
   const c = cat(id);
@@ -696,7 +707,7 @@ function openEventModal(){
       <button onclick="closeModal()">Abbrechen</button>
       <button class="primary" onclick="confirmEvent()">Speichern</button>
     </div>`);
-  $('#mMic').onclick = () => dictate($('#mMic'), t => $('#mTitle').value = t);
+  $('#mMic').onclick = () => dictate($('#mMic'), t => $('#mTitle').value = t, '#mTitle');
 }
 function confirmEvent(){
   const title = $('#mTitle').value.trim();

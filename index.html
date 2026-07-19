@@ -598,7 +598,7 @@ function calMove(dir){
   renderCalendar();
 }
 function eventsOn(isoDate){
-  return data.events.filter(e=>e.date===isoDate).sort((a,b)=>(a.time||'99')<(b.time||'99')?-1:1);
+  return [...data.events, ...appleEvents].filter(e=>e.date===isoDate).sort((a,b)=>(a.time||'99')<(b.time||'99')?-1:1);
 }
 function weekStart(d){
   const x = new Date(d);
@@ -622,7 +622,11 @@ function renderCalendar(){
       const dim = cur.getMonth()!==calDate.getMonth();
       html += `<div class="cal-cell ${dim?'dim':''} ${di===todayIso?'today':''}" onclick="gotoDay('${di}')">
         <div class="d">${cur.getDate()}</div>
-        ${evts.slice(0,2).map(e=>{const c=cat(e.catId); return `<div class="evt-chip" style="background:${c?c.color+'26':'#eee'}; color:${c?c.color:'#777'}">${esc(e.title)}</div>`;}).join('')}
+        ${evts.slice(0,2).map(e=>{
+          if(e.apple) return `<div class="evt-chip" style="background:#e6e5ee; color:#55526a"> ${esc(e.title)}</div>`;
+          const c=cat(e.catId);
+          return `<div class="evt-chip" style="background:${c?c.color+'26':'#eee'}; color:${c?c.color:'#777'}">${esc(e.title)}</div>`;
+        }).join('')}
         ${evts.length>2?`<div class="evt-chip" style="background:#eee;color:#888">+${evts.length-2}</div>`:''}
       </div>`;
       cur.setDate(cur.getDate()+1);
@@ -693,6 +697,12 @@ function gotoMonth(y,m){
   renderCalendar();
 }
 function evtCard(e){
+  if(e.apple){
+    return `<div class="evt" style="border-left:4px solid #b0aec2">
+      <span class="time">${e.time || 'ganztags'}</span>
+      <span class="etitle">${esc(e.title)} <span class="tag" style="background:#ececf2;color:#6d6a80"> Apple</span></span>
+    </div>`;
+  }
   const c = cat(e.catId);
   return `<div class="evt" style="border-left:4px solid ${c?c.color:'#ccc'}">
     <span class="time">${e.time || 'ganztags'}</span>
@@ -730,6 +740,26 @@ function deleteEvent(id){
   bury(id);
   save(); render(); toast('Termin gelöscht');
 }
+
+/* ---------- Apple-Kalender (nur Anzeige) ---------- */
+let appleEvents = [];
+async function loadAppleEvents(){
+  if(!syncReady()) return;
+  try{
+    const r = await fetch(`https://api.github.com/repos/${SYNC.owner}/${SYNC.repo}/contents/apple-kalender.json`, {
+      headers:{ 'Authorization':'Bearer '+syncToken(), 'Accept':'application/vnd.github+json' },
+      cache:'no-store'
+    });
+    if(!r.ok) return;
+    const j = await r.json();
+    const neu = JSON.parse(b64dec(j.content)).map(e=>({...e, apple:true}));
+    if(JSON.stringify(neu) !== JSON.stringify(appleEvents)){
+      appleEvents = neu;
+      render();
+    }
+  }catch(e){}
+}
+setInterval(loadAppleEvents, 300000);
 
 /* ---------- GitHub-Synchronisation ---------- */
 const SYNC = { owner:'mariealexandrabraubach54-png', repo:'mein-dashboard-daten', path:'data.json' };
@@ -872,6 +902,7 @@ async function saveSyncToken(){
     updateSyncBadge();
   } else {
     toast('Synchronisation aktiv ✓');
+    loadAppleEvents();
   }
 }
 function removeSyncToken(){
@@ -951,6 +982,7 @@ function render(){
 }
 render();
 syncNow();
+loadAppleEvents();
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
